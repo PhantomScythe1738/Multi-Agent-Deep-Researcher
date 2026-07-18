@@ -8,7 +8,7 @@ import {
   MAX_PDF_PAGES,
 } from "@/lib/constants";
 
-export interface Chunk {
+interface Chunk {
   chunkIndex: number;
   pageNumber: number;
   content: string;

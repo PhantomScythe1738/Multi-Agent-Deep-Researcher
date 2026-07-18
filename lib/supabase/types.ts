@@ -16,8 +16,6 @@ export type RunStatus =
   | "completed"
   | "failed";
 
-export type IngestionStatus = "pending" | "processing" | "ready" | "failed";
-
 export type Json = string | number | boolean | null | { [k: string]: Json } | Json[];
 
 export interface Database {

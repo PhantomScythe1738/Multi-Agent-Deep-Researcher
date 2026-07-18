@@ -249,3 +249,78 @@ describe("research graph (mocked)", () => {
     expect(deps.persist).toHaveBeenCalledTimes(1);
   });
 });
+
+// --- Retrieval degradation (Promise.allSettled resilience) ---
+
+function depsWith(web: WebSearchClient, retrievePdf: GraphDeps["retrievePdf"]): GraphDeps {
+  const events: AgentEvent[] = [];
+  let seq = 0;
+  return {
+    llm: makeLlm("sufficient"),
+    web,
+    retrievePdf,
+    emit: async (input) => {
+      events.push({
+        v: 1,
+        runId: "run-1",
+        sequence: seq++,
+        type: input.type,
+        agentName: input.agentName ?? null,
+        status: input.status ?? null,
+        message: input.message,
+        safeMetadata: input.safeMetadata ?? null,
+        timestamp: "",
+      });
+    },
+    persist: vi.fn(async () => {}),
+  };
+}
+
+const okWeb: WebSearchClient = {
+  search: vi.fn(async () => [{ title: "T", url: "https://a.com", content: "web", score: 0.9 }]),
+};
+const throwingWeb: WebSearchClient = {
+  search: vi.fn(async () => {
+    throw new Error("network failure");
+  }),
+};
+
+describe("retrieval degradation", () => {
+  it("web failure with PDF success still produces a report", async () => {
+    const deps = depsWith(throwingWeb, async () => samplePdf);
+    const final = await getResearchGraph().invoke(baseState({ selectedFileIds: ["f1"] }), {
+      configurable: { deps },
+    });
+    expect(final.webSources).toHaveLength(0);
+    expect(final.pdfEvidence.length).toBeGreaterThan(0);
+    expect(final.reportMarkdown).toContain("# Research Report");
+    expect(deps.persist).toHaveBeenCalledTimes(1);
+  });
+
+  it("PDF failure with web success still produces a report (with a warning)", async () => {
+    const deps = depsWith(okWeb, async () => {
+      throw new Error("pgvector down");
+    });
+    const final = await getResearchGraph().invoke(baseState({ selectedFileIds: ["f1"] }), {
+      configurable: { deps },
+    });
+    expect(final.pdfEvidence).toHaveLength(0);
+    expect(final.webSources.length).toBeGreaterThan(0);
+    expect(final.warnings.some((w) => w.toLowerCase().includes("pdf"))).toBe(true);
+    expect(final.reportMarkdown).toContain("# Research Report");
+  });
+
+  it("both retrieval sources failing still yields a limited report", async () => {
+    const deps = depsWith(throwingWeb, async () => {
+      throw new Error("pgvector down");
+    });
+    const final = await getResearchGraph().invoke(baseState({ selectedFileIds: ["f1"] }), {
+      configurable: { deps },
+    });
+    expect(final.webSources).toHaveLength(0);
+    expect(final.pdfEvidence).toHaveLength(0);
+    expect(final.reportMarkdown).toContain("# Research Report");
+    expect(final.reportMarkdown.toLowerCase()).toContain("not guaranteed factual truth");
+    expect(deps.persist).toHaveBeenCalledTimes(1);
+  });
+});

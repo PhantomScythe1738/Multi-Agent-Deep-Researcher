@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 /** Confidence levels used across analysis + insights. */
-export const confidenceEnum = z.enum(["high", "medium", "low"]);
+const confidenceEnum = z.enum(["high", "medium", "low"]);
 
 // --- Planner ---
 export const plannerSchema = z.object({
@@ -13,12 +13,12 @@ export const plannerSchema = z.object({
 export type PlannerOutput = z.infer<typeof plannerSchema>;
 
 // --- Critical Analysis ---
-export const claimSchema = z.object({
+const claimSchema = z.object({
   statement: z.string().min(1),
   citations: z.array(z.string()).default([]),
   confidence: confidenceEnum.default("medium"),
 });
-export const contradictionSchema = z.object({
+const contradictionSchema = z.object({
   description: z.string().min(1),
   citations: z.array(z.string()).default([]),
 });
@@ -30,18 +30,15 @@ export const analysisSchema = z.object({
   evidenceSufficiency: z.enum(["sufficient", "insufficient"]).default("insufficient"),
 });
 export type AnalysisOutput = z.infer<typeof analysisSchema>;
-export type Claim = z.infer<typeof claimSchema>;
-export type Contradiction = z.infer<typeof contradictionSchema>;
 
 // --- Query Refinement ---
 export const refinementSchema = z.object({
   improvedQuery: z.string().min(1),
   reason: z.string().min(1),
 });
-export type RefinementOutput = z.infer<typeof refinementSchema>;
 
 // --- Insight Generation ---
-export const insightSchema = z.object({
+const insightSchema = z.object({
   statement: z.string().min(1),
   citations: z.array(z.string()).default([]),
 });

@@ -39,7 +39,8 @@ export function publicEnv(): PublicEnv {
 }
 
 const serverSchema = z.object({
-  SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
+  // Optional: the app uses only user-scoped clients. Kept for admin/ops use.
+  SUPABASE_SERVICE_ROLE_KEY: z.string().min(1).optional(),
   OPENROUTER_API_KEY: z.string().min(1),
   OPENROUTER_MODEL: z.string().min(1).default("openrouter/free"),
   OPENROUTER_SITE_URL: z.string().url().optional(),

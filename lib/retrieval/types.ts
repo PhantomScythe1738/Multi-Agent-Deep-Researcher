@@ -20,5 +20,3 @@ export interface PdfEvidence {
   similarity: number;
   chunkIndex: number;
 }
-
-export type Evidence = WebSource | PdfEvidence;

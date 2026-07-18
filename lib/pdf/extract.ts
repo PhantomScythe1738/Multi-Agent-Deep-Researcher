@@ -1,7 +1,7 @@
 import "server-only";
 import { PdfReader } from "pdfreader";
 
-export interface PdfPage {
+interface PdfPage {
   page: number;
   text: string;
 }

@@ -9,7 +9,7 @@ import { retrievePdfEvidence } from "@/lib/retrieval/pdf";
 import { getResearchGraph } from "@/lib/graph/graph";
 import { persistRun } from "@/lib/research/persist";
 import type { GraphDeps } from "@/lib/graph/deps";
-import type { EmitInput, AgentEvent } from "@/lib/graph/events";
+import { EVENT_VERSION, type EmitInput, type AgentEvent } from "@/lib/graph/events";
 import type { ResearchStateType } from "@/lib/graph/state";
 import type { Json } from "@/lib/supabase/types";
 
@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
 
       const emit = async (input: EmitInput) => {
         const event: AgentEvent = {
-          v: 1,
+          v: EVENT_VERSION,
           runId,
           sequence: sequence++,
           type: input.type,

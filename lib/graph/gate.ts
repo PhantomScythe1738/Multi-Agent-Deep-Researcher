@@ -19,7 +19,7 @@ export function evidenceSufficient(state: ResearchStateType): boolean {
   );
 }
 
-export const MAX_REFINEMENTS = 1;
+const MAX_REFINEMENTS = 1;
 
 /**
  * Conditional route after the evidence gate:
