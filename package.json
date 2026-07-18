@@ -19,6 +19,9 @@
     "check": "npm run format:check && npm run lint && npm run typecheck && npm run test:run && npm run build && npm run knip"
   },
   "dependencies": {
+    "@langchain/core": "1.2.3",
+    "@langchain/langgraph": "1.4.8",
+    "@langchain/openrouter": "0.4.5",
     "@supabase/ssr": "0.12.3",
     "@supabase/supabase-js": "2.110.7",
     "@tavily/core": "0.7.6",
