@@ -23,8 +23,8 @@ const contradictionSchema = z.object({
   citations: z.array(z.string()).default([]),
 });
 export const analysisSchema = z.object({
-  claims: z.array(claimSchema).max(12).default([]),
-  contradictions: z.array(contradictionSchema).max(8).default([]),
+  claims: z.array(claimSchema).max(8).default([]),
+  contradictions: z.array(contradictionSchema).max(5).default([]),
   sourceConcerns: z.array(z.string()).max(8).default([]),
   knowledgeGaps: z.array(z.string()).max(8).default([]),
   evidenceSufficiency: z.enum(["sufficient", "insufficient"]).default("insufficient"),
@@ -43,10 +43,10 @@ const insightSchema = z.object({
   citations: z.array(z.string()).default([]),
 });
 export const insightsSchema = z.object({
-  trends: z.array(z.string()).max(8).default([]),
-  insights: z.array(insightSchema).max(10).default([]),
-  hypotheses: z.array(z.string()).max(8).default([]),
-  implications: z.array(z.string()).max(8).default([]),
-  limitations: z.array(z.string()).max(8).default([]),
+  trends: z.array(z.string()).max(5).default([]),
+  insights: z.array(insightSchema).max(6).default([]),
+  hypotheses: z.array(z.string()).max(5).default([]),
+  implications: z.array(z.string()).max(5).default([]),
+  limitations: z.array(z.string()).max(5).default([]),
 });
 export type InsightsOutput = z.infer<typeof insightsSchema>;

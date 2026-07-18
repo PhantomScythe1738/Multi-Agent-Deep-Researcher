@@ -9,15 +9,34 @@ export interface LlmClient {
   complete(input: { system: string; user: string; signal?: AbortSignal }): Promise<string>;
 }
 
+/**
+ * Free-tier fallbacks used if the configured model is unavailable/rate-limited.
+ *
+ * NOTE: do not use the `openrouter/free` router here — it may route to a model
+ * unsuited to structured output (we observed it selecting a content-safety
+ * classifier that replied "User Safety: safe" instead of JSON). Pin general
+ * instruction-following models that were verified to return valid JSON.
+ */
+const FALLBACK_MODELS = [
+  "nvidia/nemotron-3-super-120b-a12b:free",
+  "tencent/hy3:free",
+  "google/gemma-4-26b-a4b-it:free",
+];
+
 let cachedModel: ChatOpenRouter | null = null;
 
 /** Single shared OpenRouter chat model (server-only). */
 function getModel(): ChatOpenRouter {
   if (cachedModel) return cachedModel;
   const env = serverEnv();
+  const primary = env.OPENROUTER_MODEL;
+  // Ordered candidate list: primary first, then distinct fallbacks.
+  const models = [primary, ...FALLBACK_MODELS.filter((m) => m !== primary)];
   cachedModel = new ChatOpenRouter({
     apiKey: env.OPENROUTER_API_KEY,
-    model: env.OPENROUTER_MODEL,
+    model: primary,
+    models,
+    route: "fallback",
     temperature: LLM_TEMPERATURE,
     // Attribution headers (only sent when configured).
     siteUrl: env.OPENROUTER_SITE_URL,

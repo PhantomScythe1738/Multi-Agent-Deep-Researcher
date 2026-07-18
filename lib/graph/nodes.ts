@@ -2,6 +2,7 @@ import type { RunnableConfig } from "@langchain/core/runnables";
 import { getDeps } from "@/lib/graph/deps";
 import type { ResearchStateType, ResearchStateUpdate } from "@/lib/graph/state";
 import { canonicalizeUrl } from "@/lib/retrieval/url";
+import { MAX_WEB_SOURCES } from "@/lib/constants";
 import { searchWeb } from "@/lib/retrieval/web";
 import type { WebSource, PdfEvidence } from "@/lib/retrieval/types";
 import { generateStructured } from "@/lib/ai/json";
@@ -32,7 +33,10 @@ const EMPTY_INSIGHTS: InsightsOutput = {
   limitations: ["Insight generation was unavailable; findings are limited to the analysis above."],
 };
 
-/** Merge fresh web sources into existing (dedupe by canonical URL) and re-key. */
+/**
+ * Merge fresh web sources into existing (dedupe by canonical URL), keep the
+ * highest-scoring MAX_WEB_SOURCES, and re-key so citations stay stable/compact.
+ */
 function mergeWeb(existing: WebSource[], fresh: WebSource[]): WebSource[] {
   const seen = new Set(existing.map((s) => canonicalizeUrl(s.url)));
   const merged = [...existing];
@@ -43,7 +47,13 @@ function mergeWeb(existing: WebSource[], fresh: WebSource[]): WebSource[] {
       merged.push(s);
     }
   }
-  return merged.map((s, i) => ({ ...s, key: `W${i + 1}` }));
+  // Prefer higher relevance scores; nulls sort last. Stable for equal scores.
+  const ranked = merged
+    .map((s, i) => ({ s, i }))
+    .sort((a, b) => (b.s.score ?? -1) - (a.s.score ?? -1) || a.i - b.i)
+    .slice(0, MAX_WEB_SOURCES)
+    .map(({ s }) => s);
+  return ranked.map((s, i) => ({ ...s, key: `W${i + 1}` }));
 }
 
 /** Merge PDF evidence by (fileId, chunkIndex) and re-key. */

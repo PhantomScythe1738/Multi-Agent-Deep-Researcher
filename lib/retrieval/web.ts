@@ -3,7 +3,7 @@ import { canonicalizeUrl } from "@/lib/retrieval/url";
 import type { WebSource } from "@/lib/retrieval/types";
 import { MAX_RESULTS_PER_QUERY, MAX_WEB_QUERIES, TAVILY_TIMEOUT_MS } from "@/lib/constants";
 
-const MAX_EXCERPT_CHARS = 600;
+const MAX_EXCERPT_CHARS = 400;
 const MAX_QUERY_CHARS = 400;
 
 export interface RawWebResult {

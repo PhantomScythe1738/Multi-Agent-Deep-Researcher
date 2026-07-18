@@ -21,6 +21,12 @@ export const EMBED_BATCH_MAX = 16;
 export const MAX_WEB_QUERIES = 3;
 export const MAX_RESULTS_PER_QUERY = 5;
 export const TAVILY_TIMEOUT_MS = 12_000;
+/**
+ * Cap on web sources carried into the LLM prompts. Bounds prompt size so a run
+ * completes well inside the Vercel Hobby 60s limit (measured: uncapped 15
+ * sources pushed a run to ~58s; capped runs land far lower).
+ */
+export const MAX_WEB_SOURCES = 8;
 
 // --- PDF retrieval (pgvector) ---
 export const MAX_PDF_MATCHES = 8;
