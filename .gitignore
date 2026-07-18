@@ -30,12 +30,25 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
+# env files — ignore all real env files but keep the example committed
 .env*
+!.env.example
 
 # vercel
 .vercel
 
+# supabase local state
+supabase/.branches
+supabase/.temp
+supabase/.env
+
+# scratch / uploads
+/tmp
+*.local.pdf
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Claude Code local state
+.claude/settings.local.json
