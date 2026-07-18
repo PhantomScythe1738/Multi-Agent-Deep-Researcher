@@ -33,12 +33,15 @@
     "pdfreader": "3.0.8",
     "react": "19.2.4",
     "react-dom": "19.2.4",
+    "react-markdown": "10.1.0",
+    "remark-gfm": "4.0.1",
     "tailwind-merge": "3.6.0",
     "zod": "4.4.3"
   },
   "devDependencies": {
     "@eslint/eslintrc": "3.3.6",
     "@tailwindcss/postcss": "4.3.3",
+    "@tailwindcss/typography": "0.5.20",
     "@types/node": "20.19.43",
     "@types/react": "19.2.17",
     "@types/react-dom": "19.2.3",
