@@ -44,7 +44,12 @@ export async function updateSession(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
-  // Unauthenticated user hitting a protected route -> send to /login.
+  // API routes enforce auth themselves and return JSON errors (never redirect).
+  if (pathname.startsWith("/api/")) {
+    return supabaseResponse;
+  }
+
+  // Unauthenticated user hitting a protected page -> send to /login.
   if (!user && !isPublicPath(pathname)) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
