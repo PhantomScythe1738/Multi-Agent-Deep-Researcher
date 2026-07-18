@@ -40,9 +40,7 @@ function estimateTokens(text: string): number {
 export async function ingestPdf(buffer: Buffer, fileName: string): Promise<IngestResult> {
   const { pages, pageCount } = await extractPdf(buffer);
 
-  const usablePages = pages
-    .filter((p) => p.text.trim().length > 0)
-    .slice(0, MAX_PDF_PAGES);
+  const usablePages = pages.filter((p) => p.text.trim().length > 0).slice(0, MAX_PDF_PAGES);
 
   const totalText = usablePages.reduce((acc, p) => acc + p.text.trim().length, 0);
   if (usablePages.length === 0 || totalText < 20) {
