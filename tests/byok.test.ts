@@ -3,7 +3,7 @@ import { redactSecrets, maskKey } from "@/lib/ai/redact";
 
 describe("redactSecrets", () => {
   it("redacts an OpenRouter key from error text", () => {
-    const key = "sk-or-v1-REDACTED-TEST-FIXTURE";
+    const key = "sk-or-v1-" + "0".repeat(48) + "EXAMPLE";
     const out = redactSecrets(`Request failed with Authorization: Bearer ${key}`);
     expect(out).not.toContain(key);
     expect(out).toContain("[redacted]");
@@ -16,7 +16,7 @@ describe("redactSecrets", () => {
   });
 
   it("redacts JWTs and bearer tokens", () => {
-    const jwt = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.abcdefghijklmno";
+    const jwt = ["eyJ" + "X".repeat(20), "Y".repeat(20), "Z".repeat(16)].join(".");
     expect(redactSecrets(`token=${jwt}`)).not.toContain(jwt);
   });
 
@@ -28,11 +28,13 @@ describe("redactSecrets", () => {
 
 describe("maskKey", () => {
   it("shows only a prefix and suffix", () => {
-    const key = "sk-or-v1-REDACTED-TEST-FIXTURE";
+    const key = "sk-or-v1-" + "0".repeat(48) + "EXAMPLE";
     const masked = maskKey(key);
-    expect(masked.startsWith("sk-or-v1-0af")).toBe(true);
-    expect(masked.endsWith("5d9f")).toBe(true);
-    expect(masked).not.toContain(key.slice(20, 40));
+    expect(masked.startsWith(key.slice(0, 12))).toBe(true);
+    expect(masked.endsWith(key.slice(-4))).toBe(true);
+    // The middle of the key must never be shown.
+    expect(masked).not.toContain(key.slice(12, -4));
+    expect(masked).toContain("…");
   });
 
   it("fully masks short values", () => {
