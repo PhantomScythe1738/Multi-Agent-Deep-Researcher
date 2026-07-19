@@ -8,9 +8,9 @@ export const metadata = {
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ redirectTo?: string }>;
+  searchParams: Promise<{ redirectTo?: string; error?: string }>;
 }) {
-  const { redirectTo } = await searchParams;
+  const { redirectTo, error } = await searchParams;
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
@@ -22,6 +22,14 @@ export default async function LoginPage({
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {error ? (
+            <p
+              role="alert"
+              className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800"
+            >
+              {error}
+            </p>
+          ) : null}
           <LoginForm redirectTo={redirectTo} />
         </CardContent>
       </Card>
