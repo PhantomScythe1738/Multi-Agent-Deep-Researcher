@@ -3,12 +3,14 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { useApiKey } from "@/components/byok/api-key-provider";
 import { NdjsonParser } from "@/lib/stream/parse";
 import type { AgentEvent } from "@/lib/graph/events";
 import type { QualityReport } from "@/lib/report/validate";
 import { AgentTimeline } from "@/components/research/agent-timeline";
 import { ReportView } from "@/components/research/report-view";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
 type RunStatus = "running" | "completed" | "failed";
 
@@ -20,7 +22,16 @@ export function ResearchRunner({ question, fileIds }: { question: string; fileId
     null,
   );
   const [error, setError] = useState<string | null>(null);
+  const [elapsed, setElapsed] = useState(0);
   const startedRef = useRef(false);
+  const { apiKey } = useApiKey();
+
+  // Elapsed-time ticker; stops as soon as the run settles.
+  useEffect(() => {
+    if (status !== "running") return;
+    const t = setInterval(() => setElapsed((s) => s + 1), 1000);
+    return () => clearInterval(t);
+  }, [status]);
 
   useEffect(() => {
     if (startedRef.current) return; // guard against double-invoke (dev StrictMode)
@@ -75,13 +86,21 @@ export function ResearchRunner({ question, fileIds }: { question: string; fileId
       try {
         const res = await fetch("/api/research/stream", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            // BYOK: sent per request; never stored server-side.
+            "x-openrouter-key": apiKey ?? "",
+          },
           body: JSON.stringify({ question, fileIds }),
           signal: controller.signal,
         });
         if (!res.ok || !res.body) {
           const j = await res.json().catch(() => ({}));
-          setError(j.error ?? "Could not start research.");
+          setError(
+            j.code === "missing_api_key"
+              ? "Your OpenRouter key is missing or was removed. Add it again in Settings to run research."
+              : (j.error ?? "Could not start research."),
+          );
           setStatus("failed");
           return;
         }
@@ -108,17 +127,35 @@ export function ResearchRunner({ question, fileIds }: { question: string; fileId
 
     run();
     return () => controller.abort();
-  }, [question, fileIds]);
+  }, [question, fileIds, apiKey]);
 
   return (
     <div className="space-y-6">
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Agent activity</CardTitle>
+        <CardHeader className="flex flex-row items-start justify-between gap-3">
+          <div>
+            <CardTitle>Agent activity</CardTitle>
+            <p
+              className={cn(
+                "mt-1 text-sm",
+                status === "running"
+                  ? "text-sky-700"
+                  : status === "failed"
+                    ? "text-red-600"
+                    : "text-emerald-700",
+              )}
+            >
+              {status === "running"
+                ? `Working… ${elapsed}s elapsed (usually ~40s)`
+                : status === "failed"
+                  ? "Run stopped"
+                  : `Finished in ${elapsed}s`}
+            </p>
+          </div>
           {runId ? (
             <Link
               href={`/research/${runId}`}
-              className="text-sm font-medium text-sky-700 underline print:hidden"
+              className="shrink-0 text-sm font-medium text-sky-700 hover:underline print:hidden"
             >
               Permalink
             </Link>
@@ -126,9 +163,15 @@ export function ResearchRunner({ question, fileIds }: { question: string; fileId
         </CardHeader>
         <CardContent>
           {status === "running" ? (
-            <p className="mb-3 text-sm text-sky-700">Research in progress…</p>
+            <div className="mb-4 h-1 w-full overflow-hidden rounded-full bg-slate-100">
+              <div className="h-full w-1/3 animate-pulse rounded-full bg-sky-500" />
+            </div>
           ) : null}
-          {error ? <p className="mb-3 text-sm text-red-600">{error}</p> : null}
+          {error ? (
+            <p role="alert" className="mb-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+              {error}
+            </p>
+          ) : null}
           <AgentTimeline events={events} />
         </CardContent>
       </Card>

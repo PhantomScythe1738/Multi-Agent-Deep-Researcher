@@ -26,6 +26,19 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  // BYOK: the user's OpenRouter key arrives per-request in a header, is used in
+  // memory for this run only, and is never persisted, cached, or logged.
+  const userApiKey = (request.headers.get("x-openrouter-key") ?? "").trim();
+  if (!userApiKey) {
+    return NextResponse.json(
+      {
+        error: "Add your OpenRouter API key to run research.",
+        code: "missing_api_key",
+      },
+      { status: 400 },
+    );
+  }
+
   let body;
   try {
     body = researchRequestSchema.parse(await request.json());
@@ -122,7 +135,7 @@ export async function POST(request: NextRequest) {
       });
 
       const deps: GraphDeps = {
-        llm: createLlmClient(),
+        llm: createLlmClient(userApiKey),
         web: createTavilyClient(serverEnv().TAVILY_API_KEY),
         retrievePdf: (q, ids) => retrievePdfEvidence(supabase, q, ids),
         emit,

@@ -11,6 +11,27 @@ score — all streamed live and persisted to your research history.
 > inference. Uploaded and retrieved content is sent to the configured AI/search providers
 > (OpenRouter, Tavily) and Supabase as required to produce a report.
 
+## 🔑 Bring Your Own Key (BYOK)
+
+**This app has no OpenRouter key of its own.** Every user supplies their own, so usage and cost
+stay with the person running the research — there is no shared or fallback key anywhere in the
+codebase or deployment.
+
+| Question | Answer |
+| --- | --- |
+| **Where is my key held?** | Only in your browser. Default is `sessionStorage` (cleared when the tab closes). Ticking **"Remember on this device"** moves it to `localStorage` until you remove it. |
+| **Does it reach your server?** | Yes — it is sent in an `x-openrouter-key` header with each research request, purely so the server-side agents can call OpenRouter as you. It lives in memory for that single request. |
+| **Is it stored server-side?** | **Never.** It is not written to the database, any cookie, or any log. Verified by test: no `sk-or-` material appears in `research_runs` or `agent_events`. |
+| **How is it validated?** | On save, the server calls OpenRouter's `/api/v1/key` once and reports validity plus remaining credit. The key is discarded immediately after. |
+| **Is it encrypted at rest?** | No — and we don't pretend otherwise. Because it stays *on your device*, any key used to decrypt it would also ship in the JavaScript bundle, which would be security theatre. Treat "Remember on this device" as you would a saved password: avoid it on shared computers. |
+| **What if I remove it?** | All research stops immediately. There is no fallback. |
+
+Errors are passed through a redaction filter (`lib/ai/redact.ts`) before they can reach a client
+response or a log, so a provider error can never echo your key back.
+
+**Note:** Tavily (web search) and Supabase remain server-side services provided by the deployment;
+only the LLM provider is BYOK.
+
 ---
 
 ## Architecture
@@ -112,8 +133,8 @@ npm run dev                 # http://localhost:3000
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL (public) |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase publishable/anon key (public) |
 | `SUPABASE_SERVICE_ROLE_KEY` | Service-role key — **optional**; the app uses only user-scoped clients |
-| `OPENROUTER_API_KEY` | OpenRouter API key (server-only) |
-| `OPENROUTER_MODEL` | Model id (default `openrouter/free`) |
+| `OPENROUTER_API_KEY` | **Not used — do not set.** The app is BYOK; users supply their own key in the UI. |
+| `OPENROUTER_MODEL` | Model id (default `tencent/hy3:free`). Avoid the `openrouter/free` router — it can pick models unsuited to structured output. |
 | `OPENROUTER_SITE_URL` / `OPENROUTER_APP_NAME` | Optional OpenRouter attribution headers |
 | `TAVILY_API_KEY` | Tavily API key (server-only) |
 | `DEMO_SAFE_MODE` | `true` exposes a labelled cached demo run at `/demo` |

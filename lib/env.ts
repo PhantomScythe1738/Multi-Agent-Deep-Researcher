@@ -41,8 +41,11 @@ export function publicEnv(): PublicEnv {
 const serverSchema = z.object({
   // Optional: the app uses only user-scoped clients. Kept for admin/ops use.
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1).optional(),
-  OPENROUTER_API_KEY: z.string().min(1),
-  OPENROUTER_MODEL: z.string().min(1).default("openrouter/free"),
+  // NOTE: there is deliberately NO OPENROUTER_API_KEY here.
+  // This app is BYOK: every user supplies their own OpenRouter key, which is
+  // sent per-request and used in memory only. There is no server-side key and
+  // therefore no possibility of silently falling back to someone else's key.
+  OPENROUTER_MODEL: z.string().min(1).default("tencent/hy3:free"),
   OPENROUTER_SITE_URL: z.string().url().optional(),
   OPENROUTER_APP_NAME: z.string().min(1).default("Multi-Agent AI Deep Researcher"),
   TAVILY_API_KEY: z.string().min(1),
@@ -60,7 +63,6 @@ export function serverEnv(): ServerEnv {
   if (cachedServerEnv) return cachedServerEnv;
   const parsed = serverSchema.safeParse({
     SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
-    OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY,
     OPENROUTER_MODEL: process.env.OPENROUTER_MODEL,
     OPENROUTER_SITE_URL: process.env.OPENROUTER_SITE_URL,
     OPENROUTER_APP_NAME: process.env.OPENROUTER_APP_NAME,

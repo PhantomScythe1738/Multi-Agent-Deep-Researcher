@@ -1,6 +1,6 @@
 import type { WebSource, PdfEvidence } from "@/lib/retrieval/types";
 import type { AnalysisOutput, InsightsOutput, PlannerOutput } from "@/lib/ai/schemas";
-import { filterValidCitations } from "@/lib/report/validate";
+import { extractCitationTokens, filterValidCitations } from "@/lib/report/validate";
 
 export interface ReportInput {
   question: string;
@@ -13,9 +13,15 @@ export interface ReportInput {
   mode: "live" | "demo";
 }
 
-/** Render valid citation keys as "[W1][P2]" (invalid keys dropped). */
-function renderCitations(citations: string[], validKeys: Set<string>): string {
-  const valid = filterValidCitations(citations, validKeys);
+/**
+ * Render valid citation keys as "[W1][P2]".
+ *
+ * Invalid keys are dropped. Keys the model already wrote inline in `text` are
+ * skipped so we never emit duplicates like "… [P1]. [P1]".
+ */
+function renderCitations(citations: string[], validKeys: Set<string>, text = ""): string {
+  const alreadyInline = new Set(extractCitationTokens(text));
+  const valid = filterValidCitations(citations, validKeys).filter((k) => !alreadyInline.has(k));
   if (valid.length === 0) return "";
   return " " + valid.map((k) => `[${k}]`).join("");
 }
@@ -57,7 +63,7 @@ export function buildReport(input: ReportInput): string {
     );
     lines.push("");
     for (const c of topFindings) {
-      lines.push(`- ${c.statement}${renderCitations(c.citations, validKeys)}`);
+      lines.push(`- ${c.statement}${renderCitations(c.citations, validKeys, c.statement)}`);
     }
   } else {
     lines.push(
@@ -79,7 +85,7 @@ export function buildReport(input: ReportInput): string {
   if (analysis.claims.length > 0) {
     for (const c of analysis.claims) {
       lines.push(
-        `- **(${c.confidence})** ${c.statement}${renderCitations(c.citations, validKeys)}`,
+        `- **(${c.confidence})** ${c.statement}${renderCitations(c.citations, validKeys, c.statement)}`,
       );
     }
   } else {
@@ -91,7 +97,7 @@ export function buildReport(input: ReportInput): string {
   lines.push("## Contradictions and Disagreements");
   if (analysis.contradictions.length > 0) {
     for (const c of analysis.contradictions) {
-      lines.push(`- ${c.description}${renderCitations(c.citations, validKeys)}`);
+      lines.push(`- ${c.description}${renderCitations(c.citations, validKeys, c.description)}`);
     }
   } else {
     lines.push("_No direct contradictions were found in the retrieved evidence._");
@@ -108,7 +114,7 @@ export function buildReport(input: ReportInput): string {
   lines.push("**Insights:**");
   if (insights.insights.length > 0) {
     for (const i of insights.insights) {
-      lines.push(`- ${i.statement}${renderCitations(i.citations, validKeys)}`);
+      lines.push(`- ${i.statement}${renderCitations(i.citations, validKeys, i.statement)}`);
     }
   } else {
     lines.push("_No additional insights beyond the key findings._");

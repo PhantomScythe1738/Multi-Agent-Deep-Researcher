@@ -69,6 +69,25 @@ describe("buildReport", () => {
     expect(md).not.toContain("[W99]");
   });
 
+  it("does not duplicate a citation the model already wrote inline", () => {
+    const md = buildReport({
+      question: "Q?",
+      plan: null,
+      webSources: web,
+      pdfEvidence: [],
+      analysis: {
+        ...analysis,
+        claims: [{ statement: "Velocity was flat [W1].", citations: ["W1"], confidence: "high" }],
+      },
+      insights,
+      warnings: [],
+      mode: "live",
+    });
+    // "[W1]" should appear once in the finding line, not twice.
+    const findingLine = md.split("\n").find((l) => l.includes("Velocity was flat")) ?? "";
+    expect((findingLine.match(/\[W1\]/g) ?? []).length).toBe(1);
+  });
+
   it("always includes a limitations disclaimer", () => {
     const md = buildReport({
       question: "Q?",
