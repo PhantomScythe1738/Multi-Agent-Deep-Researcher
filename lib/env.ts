@@ -49,6 +49,12 @@ const serverSchema = z.object({
   OPENROUTER_SITE_URL: z.string().url().optional(),
   OPENROUTER_APP_NAME: z.string().min(1).default("Multi-Agent AI Deep Researcher"),
   TAVILY_API_KEY: z.string().min(1),
+  // --- Resend (optional): transactional email sent BY this app ---
+  // Optional so the app runs fine without it; email features simply disable.
+  RESEND_API_KEY: z.string().min(1).optional(),
+  // Must be a verified Resend domain. `onboarding@resend.dev` only delivers to
+  // the Resend account owner's own address.
+  EMAIL_FROM: z.string().min(1).default("onboarding@resend.dev"),
   DEMO_SAFE_MODE: z
     .enum(["true", "false"])
     .default("true")
@@ -67,6 +73,8 @@ export function serverEnv(): ServerEnv {
     OPENROUTER_SITE_URL: process.env.OPENROUTER_SITE_URL,
     OPENROUTER_APP_NAME: process.env.OPENROUTER_APP_NAME,
     TAVILY_API_KEY: process.env.TAVILY_API_KEY,
+    RESEND_API_KEY: process.env.RESEND_API_KEY,
+    EMAIL_FROM: process.env.EMAIL_FROM,
     DEMO_SAFE_MODE: process.env.DEMO_SAFE_MODE,
   });
   if (!parsed.success) {

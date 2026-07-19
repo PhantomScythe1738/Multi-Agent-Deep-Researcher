@@ -16,7 +16,9 @@ export type AppEventType =
   | "ingest_completed"
   | "ingest_failed"
   | "api_key_validated"
-  | "api_key_rejected";
+  | "api_key_rejected"
+  | "email_sent"
+  | "email_failed";
 
 /**
  * Record an application event in public.app_logs via the log_event() RPC.
