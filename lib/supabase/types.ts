@@ -166,6 +166,13 @@ export interface Database {
     };
     Views: Record<never, never>;
     Functions: {
+      log_event: {
+        Args: {
+          p_event_type: string;
+          p_details?: Json;
+        };
+        Returns: undefined;
+      };
       match_document_chunks: {
         Args: {
           query_embedding: string;

@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { validateOpenRouterKey } from "@/lib/ai/openrouter-key";
+import { logEvent } from "@/lib/logging/events";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -31,6 +32,10 @@ export async function POST(request: NextRequest) {
   }
 
   const result = await validateOpenRouterKey(apiKey);
+  // Never log the key itself — only the outcome.
+  await logEvent(supabase, result.valid ? "api_key_validated" : "api_key_rejected", {
+    reason: result.valid ? undefined : result.error,
+  });
   // Explicitly no-store so the response (which reflects key status) isn't cached.
   return NextResponse.json(result, {
     status: result.valid ? 200 : 400,

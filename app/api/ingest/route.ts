@@ -5,6 +5,7 @@ import { ingestPdf, EmptyPdfError } from "@/lib/pdf/ingest";
 import { embedTexts, toVectorLiteral } from "@/lib/ai/embeddings";
 import { MAX_PDF_BYTES } from "@/lib/constants";
 import { redactSecrets } from "@/lib/ai/redact";
+import { logEvent } from "@/lib/logging/events";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -109,6 +110,12 @@ export async function POST(request: NextRequest) {
       .update({ ingestion_status: "ready", page_count: pageCount, error_summary: null })
       .eq("id", fileId);
 
+    await logEvent(supabase, "ingest_completed", {
+      fileId,
+      chunkCount: rows.length,
+      pageCount,
+      ms: Date.now() - t0,
+    });
     return NextResponse.json({ status: "ready", chunkCount: rows.length, pageCount });
   } catch (err) {
     const raw = err instanceof Error ? err.message : String(err);
@@ -129,6 +136,13 @@ export async function POST(request: NextRequest) {
       reason: redactSecrets(raw).slice(0, 300),
     });
 
+    await logEvent(supabase, "ingest_failed", {
+      fileId,
+      stage,
+      chunkCount,
+      ms: Date.now() - t0,
+      reason: redactSecrets(raw).slice(0, 300),
+    });
     return NextResponse.json({ status: "failed", stage, error: message }, { status: 422 });
   }
 }

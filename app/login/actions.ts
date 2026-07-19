@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { logEvent } from "@/lib/logging/events";
 
 const credentialsSchema = z.object({
   email: z.string().email("Enter a valid email address."),
@@ -34,9 +35,20 @@ export async function login(_prev: AuthState, formData: FormData): Promise<AuthS
     password: parsed.data.password,
   });
   if (error) {
-    return { error: "Invalid email or password." };
+    await logEvent(supabase, "login_failed", {
+      email: parsed.data.email,
+      reason: error.message,
+    });
+    // Supabase reports unconfirmed emails as invalid credentials; be specific.
+    const unconfirmed = /confirm/i.test(error.message);
+    return {
+      error: unconfirmed
+        ? "Please confirm your email address, then sign in."
+        : "Invalid email or password.",
+    };
   }
 
+  await logEvent(supabase, "login_success", { email: parsed.data.email });
   redirect(safeRedirectTo(parsed.data.redirectTo));
 }
 
@@ -56,10 +68,19 @@ export async function signup(_prev: AuthState, formData: FormData): Promise<Auth
     password: parsed.data.password,
   });
   if (error) {
+    await logEvent(supabase, "signup_failed", {
+      email: parsed.data.email,
+      reason: error.message,
+    });
     return { error: error.message };
   }
 
   // When email confirmation is enabled, no session is returned yet.
+  await logEvent(supabase, "signup_success", {
+    email: parsed.data.email,
+    autoSignedIn: Boolean(data.session),
+  });
+
   if (!data.session) {
     return { error: null, notice: "Check your email to confirm your account, then sign in." };
   }

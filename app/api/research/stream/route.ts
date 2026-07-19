@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { serverEnv } from "@/lib/env";
+import { redactSecrets } from "@/lib/ai/redact";
 import { researchRequestSchema } from "@/lib/validation/research";
 import { checkRunRateLimit } from "@/lib/ratelimit";
 import { createLlmClient } from "@/lib/ai/model";
@@ -12,6 +13,7 @@ import type { GraphDeps } from "@/lib/graph/deps";
 import { EVENT_VERSION, type EmitInput, type AgentEvent } from "@/lib/graph/events";
 import type { ResearchStateType } from "@/lib/graph/state";
 import type { Json } from "@/lib/supabase/types";
+import { logEvent } from "@/lib/logging/events";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -128,6 +130,7 @@ export async function POST(request: NextRequest) {
         }
       };
 
+      await logEvent(supabase, "research_started", { runId, fileCount: body.fileIds.length });
       await emit({
         type: "run_created",
         message: "Research run created.",
@@ -172,6 +175,7 @@ export async function POST(request: NextRequest) {
           signal: request.signal,
           recursionLimit: 50,
         });
+        await logEvent(supabase, "research_completed", { runId });
         await emit({ type: "stream_complete", message: "Stream complete." });
       } catch (err) {
         if (request.signal.aborted) {
@@ -192,6 +196,10 @@ export async function POST(request: NextRequest) {
           console.error("research stream error", {
             runId,
             name: err instanceof Error ? err.name : "unknown",
+          });
+          await logEvent(supabase, "research_failed", {
+            runId,
+            reason: err instanceof Error ? redactSecrets(err.message).slice(0, 300) : "unknown",
           });
         }
       } finally {
