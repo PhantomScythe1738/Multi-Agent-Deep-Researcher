@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { redactSecrets, maskKey } from "@/lib/ai/redact";
+import { buildEmbedBatches } from "@/lib/ai/embed-batching";
 
 describe("redactSecrets", () => {
   it("redacts an OpenRouter key from error text", () => {
@@ -39,5 +40,36 @@ describe("maskKey", () => {
 
   it("fully masks short values", () => {
     expect(maskKey("short")).not.toContain("short");
+  });
+});
+
+describe("buildEmbedBatches", () => {
+  it("splits by character budget, not just count", () => {
+    // 4 texts of 2000 chars = 8000 chars: must not land in one request.
+    const texts = Array.from({ length: 4 }, () => "x".repeat(2000));
+    const batches = buildEmbedBatches(texts, 4, 4500);
+    expect(batches.length).toBeGreaterThan(1);
+    for (const b of batches) {
+      const chars = b.reduce((s, t) => s + t.length, 0);
+      // A batch may exceed only when it holds a single oversized text.
+      if (b.length > 1) expect(chars).toBeLessThanOrEqual(4500);
+    }
+  });
+
+  it("respects the count cap for short texts", () => {
+    const texts = Array.from({ length: 10 }, () => "short");
+    const batches = buildEmbedBatches(texts, 4, 4500);
+    expect(Math.max(...batches.map((b) => b.length))).toBeLessThanOrEqual(4);
+  });
+
+  it("gives a single oversized text its own batch and loses nothing", () => {
+    const texts = ["a".repeat(9000), "b", "c"];
+    const batches = buildEmbedBatches(texts, 4, 4500);
+    expect(batches[0]).toEqual([texts[0]]);
+    expect(batches.flat()).toEqual(texts);
+  });
+
+  it("returns no batches for no input", () => {
+    expect(buildEmbedBatches([], 4, 4500)).toEqual([]);
   });
 });

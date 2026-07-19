@@ -14,8 +14,16 @@ export const CHUNK_OVERLAP_TOKENS = 50;
 
 // --- Embeddings (Supabase gte-small) ---
 export const EMBEDDING_DIM = 384;
-/** Max texts per embedding Edge Function request. */
-export const EMBED_BATCH_MAX = 16;
+/**
+ * Max texts per embedding Edge Function request.
+ *
+ * The real constraint is CPU, not count — see EMBED_BATCH_MAX_CHARS. Measured
+ * against Supabase's gte-small worker: ~5.6k chars/request succeeds while
+ * ~7.9k fails with WORKER_RESOURCE_LIMIT (HTTP 546).
+ */
+export const EMBED_BATCH_MAX = 4;
+/** Character budget per embedding request, with margin under the observed limit. */
+export const EMBED_BATCH_MAX_CHARS = 4500;
 
 // --- Web retrieval (Tavily) ---
 export const MAX_WEB_QUERIES = 3;
